@@ -4,13 +4,53 @@ Enriches research dataset metadata by discovering related digital objects (publi
 
 ---
 
-## Quick start
+## Quick start and test
+
+### 1. Configure and start
 
 ```bash
 cp .env.example .env
 # Edit .env — set POSTGRES_PASSWORD and MESS_ADMIN_KEY at minimum
-./scripts/start.sh
+bash scripts/start.sh
 ```
+
+Wait for the API to become healthy:
+
+```bash
+docker compose ps          # mess-api should show "(healthy)"
+curl http://localhost:8000/health
+# {"status": "ok", "postgres": "ok", "sparql": "ok"}
+```
+
+> `sparql` will show `"error"` until you build the QLever index (step 3).
+
+### 2. Enrich datasets — web UI
+
+Open **http://localhost:8000** in your browser. Paste each DOI into the search box and press Enter:
+
+| DOI | Dataset |
+|-----|---------|
+| `10.4232/1.13571` | ALLBUS 2018 (GESIS) |
+| `10.4232/1.11449` | ALLBUS 2014 (GESIS) |
+| `10.5255/ukda-sn-7480-1` | UK Household Longitudinal Study (UK Data Service) |
+| `10.17026/dans-xby-5dhs` | DANS dataset (DANS-KNAW) |
+
+Each enrichment fetches related publications, datasets, and software from Scholexplorer, OpenAIRE, and OpenAlex, then returns the result as SKG-IF JSON-LD.
+
+To browse all cached objects: **http://localhost:8000/browse.html**
+
+### 3. Build the QLever knowledge graph
+
+```bash
+bash scripts/rebuild_qlever.sh
+```
+
+Once done, `curl http://localhost:8000/health` should return `"sparql": "ok"`.
+
+### 4. Explore — web UI
+
+- **Graph explorer**: http://localhost:8000/graph.html — visual link graph for any enriched DOI
+- **SPARQL interface**: http://localhost:8000/sparql.html — run queries against the knowledge graph, with built-in example queries
 
 ---
 
