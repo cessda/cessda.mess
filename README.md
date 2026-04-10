@@ -98,12 +98,38 @@ MESS_ADMIN_KEY=your-admin-key ./scripts/etl.sh
 
 ---
 
+## Knowledge graph (QLever)
+
+QLever requires a pre-built index. Rebuild it whenever you want the SPARQL store to reflect the latest enriched data:
+
+```bash
+# Full rebuild in one command (stops QLever, exports triples, builds index, restarts QLever)
+bash scripts/rebuild_qlever.sh
+```
+
+Or run the steps manually:
+
+```bash
+# 1. Export triples from PostgreSQL to a shared volume
+docker compose run --rm mess-api python scripts/export_triples.py
+
+# 2. Build the QLever index
+docker compose -f docker-compose.qlever.yml run --rm indexer
+
+# 3. Start (or restart) the QLever server
+docker compose -f docker-compose.qlever.yml up -d qlever
+```
+
+> The main `docker-compose.yml` does **not** start QLever — it must be managed separately via `docker-compose.qlever.yml`.
+
+---
+
 ## SPARQL queries
 
 The SPARQL endpoint is available at two levels:
 
 - **Via MESS API proxy** (rate-limited, logged): `http://localhost:8000/sparql?query=...`
-- **Directly on Oxigraph**: `http://localhost:7001/query?query=...`
+- **Directly on QLever**: `http://localhost:7001/?query=...`
 
 ### All objects in the graph
 ```bash

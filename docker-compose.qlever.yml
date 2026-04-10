@@ -16,7 +16,7 @@
 services:
 
   indexer:
-    image: adfreiburg/qlever:latest
+    image: adfreiburg/qlever:v0.5.45
     user: root
     entrypoint: /qlever/qlever-index
     volumes:
@@ -27,7 +27,7 @@ services:
     command: ["-f", "/export/graph.nt", "-i", "/index/graph"]
 
   qlever:
-    image: adfreiburg/qlever:latest
+    image: adfreiburg/qlever:v0.5.45
     user: root
     entrypoint: /qlever/qlever-server
     restart: unless-stopped
