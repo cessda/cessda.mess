@@ -34,6 +34,7 @@ Open **http://localhost:8000** in your browser. Paste each DOI into the search b
 | `10.4232/1.11449` | ALLBUS 2014 (GESIS) |
 | `10.5255/ukda-sn-7480-1` | UK Household Longitudinal Study (UK Data Service) |
 | `10.17026/dans-xby-5dhs` | DANS dataset (DANS-KNAW) |
+| `10.23669/1ZTELP` | ParlaCAP dataset (CESSDA) |
 
 Each enrichment fetches related publications, datasets, and software from Scholexplorer, OpenAIRE, and OpenAlex, then returns the result as SKG-IF JSON-LD.
 
