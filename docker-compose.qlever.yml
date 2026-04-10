@@ -24,6 +24,7 @@ services:
 
   indexer:
     image: adfreiburg/qlever:commit-36ed965
+    user: root
     networks: [mess-net]
     entrypoint: /qlever/qlever-index
     volumes:
@@ -35,6 +36,7 @@ services:
 
   qlever:
     image: adfreiburg/qlever:commit-36ed965
+    user: root
     networks: [mess-net]
     entrypoint: /qlever/qlever-server
     restart: unless-stopped
