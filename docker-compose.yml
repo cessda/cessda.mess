@@ -1,9 +1,17 @@
+name: mess
+
+networks:
+  mess-net:
+    external: true
+    name: mess-net
+
 services:
 
   postgres:
     image: postgres:16.9
     restart: unless-stopped
     shm_size: 256mb
+    networks: [mess-net]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mess}
       POSTGRES_USER: ${POSTGRES_USER:-mess}
@@ -22,6 +30,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    networks: [mess-net]
     env_file: .env
     environment:
       POSTGRES_HOST: postgres
@@ -43,4 +52,6 @@ services:
 
 volumes:
   pgdata:
+    name: mess_pgdata
   export:
+    name: mess_export

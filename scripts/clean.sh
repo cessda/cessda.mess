@@ -17,6 +17,7 @@ echo "Stopping and removing core stack volumes..."
 docker compose down -v
 
 echo "Starting fresh core stack..."
+docker network create mess-net 2>/dev/null || true
 docker compose up -d
 echo "Done. PostgreSQL and API are starting fresh."
 echo ""
