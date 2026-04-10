@@ -16,19 +16,43 @@ cp .env.example .env
 
 ## Container management
 
+The core stack (PostgreSQL + API) and the QLever SPARQL store are managed **separately**. QLever requires a pre-built index and cannot start without one — always run `rebuild_qlever.sh` before expecting SPARQL to work.
+
+### Core stack (PostgreSQL + API)
+
 ```bash
-# Start all containers (preserves data)
-./scripts/start.sh
+# Start (preserves data)
+bash scripts/start.sh
 
-# Stop all containers (preserves data)
-./scripts/stop.sh
+# Stop (preserves data)
+bash scripts/stop.sh
 
-# Restart all containers
-./scripts/restart.sh
+# Also stop QLever at the same time
+bash scripts/stop.sh --qlever
 
-# Wipe all data and start fresh (asks for confirmation)
-./scripts/clean.sh
+# Restart
+bash scripts/restart.sh
+
+# Also restart QLever (does NOT rebuild the index)
+bash scripts/restart.sh --qlever
+
+# Wipe ALL data and start fresh — PostgreSQL, export volume, and QLever index
+bash scripts/clean.sh
 ```
+
+### QLever (SPARQL store)
+
+QLever must be started separately and requires an index to exist first. The index must be rebuilt whenever enriched data changes.
+
+```bash
+# Build index and start QLever — run this on first setup, after clean.sh, or after new enrichments
+bash scripts/rebuild_qlever.sh
+```
+
+**First-time setup order:**
+1. `bash scripts/start.sh` — start PostgreSQL + API
+2. Enrich at least one dataset via `GET /enrich?pid=...`
+3. `bash scripts/rebuild_qlever.sh` — export triples, build index, start QLever
 
 ---
 
