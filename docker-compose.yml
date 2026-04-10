@@ -1,0 +1,46 @@
+services:
+
+  postgres:
+    image: postgres:16.9
+    restart: unless-stopped
+    shm_size: 256mb
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mess}
+      POSTGRES_USER: ${POSTGRES_USER:-mess}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mess}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mess-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      SPARQL_EXPORT_PATH: /export/graph.nt
+      SPARQL_QUERY_URL: http://qlever:7001
+    volumes:
+      - export:/export
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+volumes:
+  pgdata:
+  export:

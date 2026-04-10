@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MESS — SPARQL Query</title>
+  <link rel="stylesheet" href="https://unpkg.com/@triply/yasgui@4.2.28/build/yasgui.min.css" />
+  <style>
+    :root { --blue: #1a56a0; --gray: #6b7280; --border: #d1d5db; --radius: 6px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f9fafb; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: var(--blue);
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 1rem; font-weight: 700; }
+    nav { display: flex; gap: 12px; margin-left: auto; }
+    nav a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.85rem; padding: 4px 10px; border-radius: 4px; }
+    nav a:hover, nav a.active { background: rgba(255,255,255,0.2); color: #fff; }
+
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: #fff;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 14px;
+    }
+    .sidebar h2 { font-size: 0.75rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+    .query-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+      color: #1f2937;
+      cursor: pointer;
+      line-height: 1.4;
+    }
+    .query-btn:hover { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+    .query-btn strong { display: block; font-size: 0.82rem; margin-bottom: 2px; }
+    .query-btn span { color: var(--gray); font-size: 0.78rem; }
+
+    .editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 12px; }
+    #yasgui { flex: 1; }
+    .yasgui { height: 100% !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>MESS — SPARQL Query Interface</h1>
+  <nav>
+    <a href="browse.html">Browse</a>
+    <a href="index.html">Enrich</a>
+    <a href="sparql.html" class="active">SPARQL</a>
+    <a href="graph.html">Graph</a>
+  </nav>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h2>Example Queries</h2>
+
+    <button class="query-btn" onclick="setQuery('all_products')">
+      <strong>All research products</strong>
+      <span>List every object with its type and title</span>
+    </button>
+
+    <button class="query-btn" onclick="setQuery('most_cited')">
+      <strong>Most cited datasets</strong>
+      <span>Datasets ranked by citation count</span>
+    </button>
+
+    <button class="query-btn" onclick="setQuery('all_relations')">
+      <strong>All relationships</strong>
+      <span>Source → predicate → target triples</span>
+    </button>
+
+    <button class="query-btn" onclick="setQuery('creators')">
+      <strong>Creators by output count</strong>
+      <span>Persons ranked by number of linked objects</span>
+    </button>
+
+    <button class="query-btn" onclick="setQuery('datasets_with_pubs')">
+      <strong>Datasets and related publications</strong>
+      <span>Cross-type links between datasets and literature</span>
+    </button>
+
+    <button class="query-btn" onclick="setQuery('by_doi')">
+      <strong>Lookup by DOI</strong>
+      <span>All triples for a specific DOI URI</span>
+    </button>
+
+    <button class="query-btn" onclick="setQuery('creator_search')">
+      <strong>Search by creator surname</strong>
+      <span>Find objects linked to a person by name fragment</span>
+    </button>
+
+    <button class="query-btn" onclick="setQuery('external_ids')">
+      <strong>External IDs (OpenAIRE / OpenAlex)</strong>
+      <span>OpenAIRE dedup IDs and OpenAlex IDs per object</span>
+    </button>
+  </aside>
+
+  <div class="editor-wrap">
+    <div id="yasgui"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@triply/yasgui@4.2.28/build/yasgui.min.js"></script>
+<script>
+const ENDPOINT = "/sparql";
+
+const QUERIES = {
+  all_products: `\
+PREFIX skg: <https://w3id.org/skg-if/ontology/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT ?obj ?type ?title WHERE {
+  ?obj a ?type ;
+       dcterms:title ?title .
+  VALUES ?type { skg:Dataset skg:Publication skg:Software skg:ResearchProduct }
+}
+ORDER BY ?type ?title
+LIMIT 100`,
+
+  most_cited: `\
+PREFIX skg: <https://w3id.org/skg-if/ontology/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT ?title ?citations ?obj WHERE {
+  ?obj a skg:Dataset ;
+       dcterms:title ?title ;
+       skg:citationCount ?citations .
+}
+ORDER BY DESC(?citations)
+LIMIT 25`,
+
+  all_relations: `\
+PREFIX skg: <https://w3id.org/skg-if/ontology/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT ?sourceTitle ?predicate ?targetTitle WHERE {
+  VALUES ?predicate {
+    skg:cites skg:isRelatedTo skg:isSupplementTo skg:references
+    skg:hasPart skg:isPartOf skg:isDerivedFrom skg:isSourceOf skg:isNewVersionOf
+  }
+  ?source ?predicate ?target ;
+          dcterms:title ?sourceTitle .
+  ?target dcterms:title ?targetTitle .
+}
+LIMIT 200`,
+
+  creators: `\
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX schema: <https://schema.org/>
+
+SELECT ?name (COUNT(?obj) AS ?works) WHERE {
+  ?obj dcterms:creator ?creator .
+  ?creator schema:name ?name .
+}
+GROUP BY ?name
+ORDER BY DESC(?works)
+LIMIT 50`,
+
+  datasets_with_pubs: `\
+PREFIX skg: <https://w3id.org/skg-if/ontology/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT ?datasetTitle ?relation ?pubTitle WHERE {
+  VALUES ?relation {
+    skg:cites skg:isRelatedTo skg:isSupplementTo skg:references
+  }
+  ?dataset a skg:Dataset ;
+           dcterms:title ?datasetTitle ;
+           ?relation ?pub .
+  ?pub a skg:Publication ;
+       dcterms:title ?pubTitle .
+}
+ORDER BY ?datasetTitle`,
+
+  by_doi: `\
+PREFIX skg: <https://w3id.org/skg-if/ontology/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX schema: <https://schema.org/>
+
+# Change the DOI URI below to look up a different object
+SELECT ?predicate ?value WHERE {
+  <https://doi.org/10.4232/1.14377> ?predicate ?value .
+}`,
+
+  creator_search: `\
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX schema: <https://schema.org/>
+
+# Change "schmitt" below to search for a different surname
+SELECT DISTINCT ?name ?title WHERE {
+  ?obj dcterms:creator ?c ;
+       dcterms:title ?title .
+  ?c schema:name ?name .
+  FILTER(CONTAINS(LCASE(STR(?name)), "schmitt"))
+}
+ORDER BY ?name`,
+
+  external_ids: `\
+PREFIX skg: <https://w3id.org/skg-if/ontology/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT ?title ?openaire ?openalex WHERE {
+  ?obj dcterms:title ?title .
+  OPTIONAL { ?obj skg:openAIREId ?openaire . }
+  OPTIONAL { ?obj skg:openAlexId ?openalex . }
+  FILTER(BOUND(?openaire) || BOUND(?openalex))
+}
+ORDER BY ?title`,
+};
+
+// Initialise YASGUI — persistency disabled to keep example queries clean
+const yasgui = new Yasgui(document.getElementById("yasgui"), {
+  requestConfig: {
+    endpoint: ENDPOINT,
+    method: "POST",
+  },
+  persistency: false,
+  copyEndpointOnNewTab: false,
+});
+
+// Load the first example query on page load
+setQuery("all_products");
+
+function setQuery(key) {
+  const q = QUERIES[key];
+  if (!q) return;
+  const tab = yasgui.getTab();
+  if (tab) {
+    tab.yasqe.setValue(q);
+    tab.yasqe.query();
+  }
+}
+</script>
+</body>
+</html>

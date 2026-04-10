@@ -1,0 +1,57 @@
+{
+  "as_source": {
+    "result": [
+      {
+        "source": {
+          "identifier": [
+            {"identifier": "10.1234/dataset-001", "identifierType": "doi"}
+          ],
+          "objectType": "dataset",
+          "title": [{"title": "Example Survey Dataset"}],
+          "creator": [{"name": "Smith, Jane", "nameIdentifier": "https://orcid.org/0000-0001-2345-6789"}]
+        },
+        "target": {
+          "identifier": [
+            {"identifier": "10.5678/dataset-002", "identifierType": "doi"},
+            {"identifier": "doi_dedup___::abc123", "identifierType": "openaire"}
+          ],
+          "objectType": "dataset",
+          "title": [{"title": "Related Survey Dataset"}],
+          "creator": [{"name": "Jones, Bob"}]
+        },
+        "relationshipType": {"name": "IsRelatedTo"},
+        "linkProvider": [{"name": "DataCite"}],
+        "harvestDate": "2025-02-01",
+        "_related_side": "target"
+      }
+    ],
+    "resumptionToken": null
+  },
+  "as_target": {
+    "result": [
+      {
+        "source": {
+          "identifier": [
+            {"identifier": "10.5678/pub-001", "identifierType": "doi"},
+            {"identifier": "doi_dedup___::pub123", "identifierType": "openaire"}
+          ],
+          "objectType": "publication",
+          "title": [{"title": "Analysis of Survey Data"}],
+          "creator": [{"name": "Jones, Bob"}]
+        },
+        "target": {
+          "identifier": [
+            {"identifier": "10.1234/dataset-001", "identifierType": "doi"}
+          ],
+          "objectType": "dataset",
+          "title": [{"title": "Example Survey Dataset"}]
+        },
+        "relationshipType": {"name": "Cites"},
+        "linkProvider": [{"name": "Crossref"}],
+        "harvestDate": "2025-01-15",
+        "_related_side": "source"
+      }
+    ],
+    "resumptionToken": null
+  }
+}

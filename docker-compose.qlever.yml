@@ -1,0 +1,45 @@
+# QLever SPARQL server — run separately after exporting triples and building the index.
+#
+# Workflow:
+#   Step 1: Export triples from PostgreSQL:
+#     docker compose run --rm mess-api python scripts/export_triples.py
+#
+#   Step 2: Build the QLever index (one-time per data refresh):
+#     docker compose -f docker-compose.qlever.yml run --rm indexer
+#
+#   Step 3: Start the QLever SPARQL server:
+#     docker compose -f docker-compose.qlever.yml up -d qlever
+#
+#   To refresh: stop qlever, re-run steps 1-3.
+#   Shortcut: bash scripts/rebuild_qlever.sh
+
+services:
+
+  indexer:
+    image: adfreiburg/qlever:latest
+    user: root
+    entrypoint: /qlever/qlever-index
+    volumes:
+      - export:/export
+      - qlever-index:/index
+    working_dir: /index
+    # -f: input NT file  -i: index basename (all index files share this prefix)
+    command: ["-f", "/export/graph.nt", "-i", "/index/graph"]
+
+  qlever:
+    image: adfreiburg/qlever:latest
+    user: root
+    entrypoint: /qlever/qlever-server
+    restart: unless-stopped
+    volumes:
+      - qlever-index:/index
+    ports:
+      - "7001:7001"
+    # -i: index basename  -p: HTTP port
+    command: ["-i", "/index/graph", "-p", "7001"]
+
+volumes:
+  export:
+    external: true
+    name: project_source_repo_export   # shared volume from docker-compose.yml
+  qlever-index:

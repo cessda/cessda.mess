@@ -1,0 +1,25 @@
+{
+  "@context": "https://w3id.org/skg-if/context/skg-if.json",
+  "@graph": [
+    {
+      "@type": "ResearchProduct",
+      "@id": "https://doi.org/10.1234/dataset-001",
+      "type": "dataset",
+      "identifiers": [
+        {"scheme": "doi", "value": "10.1234/dataset-001"},
+        {"scheme": "handle", "value": "20.500.12345/dataset-001"}
+      ],
+      "titles": {"en": ["Example Survey Dataset"], "de": ["Beispiel-Umfragedatensatz"]},
+      "contributors": [
+        {"name": "Smith, Jane", "identifier": "https://orcid.org/0000-0001-2345-6789"}
+      ],
+      "keywords": ["survey", "social science", "longitudinal"],
+      "topics": [
+        {"id": "https://vocabularies.cessda.eu/topic/123", "label": "Social Sciences"}
+      ],
+      "access": {"type": "open"},
+      "localIdentifier": "UKDS-SN-1234",
+      "methods": ["face-to-face interview", "CAPI"]
+    }
+  ]
+}

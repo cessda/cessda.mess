@@ -1,0 +1,27 @@
+{
+  "id": "https://openalex.org/W123456789",
+  "doi": "https://doi.org/10.5678/pub-001",
+  "cited_by_count": 42,
+  "cited_by_api_url": "https://api.openalex.org/works?filter=cites:W123456789",
+  "fwci": 1.85,
+  "is_xpac": false,
+  "topics": [
+    {"id": "https://openalex.org/T101", "display_name": "Survey Research", "score": 0.98},
+    {"id": "https://openalex.org/T202", "display_name": "Longitudinal Studies", "score": 0.72}
+  ],
+  "keywords": [
+    {"display_name": "survey data"},
+    {"display_name": "social science"}
+  ],
+  "open_access": {
+    "is_oa": true,
+    "oa_status": "gold",
+    "oa_url": "https://example.com/pub-001-oa"
+  },
+  "authorships": [
+    {
+      "author": {"id": "https://openalex.org/A111", "display_name": "Jones, Bob"},
+      "institutions": [{"display_name": "University of Example"}]
+    }
+  ]
+}

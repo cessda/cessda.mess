@@ -1,0 +1,46 @@
+{
+  "id": "doi_dedup___::abc123",
+  "pids": [
+    {"scheme": "doi", "value": "10.1234/dataset-001"}
+  ],
+  "authors": [
+    {
+      "fullName": "Smith, Jane",
+      "rank": 1,
+      "pid": {
+        "id": {"scheme": "orcid", "value": "0000-0001-2345-6789"},
+        "provenance": {"provenance": "Sysimport:matching:orcidworks", "trust": "0.9"}
+      }
+    },
+    {
+      "fullName": "Doe, John",
+      "rank": 2
+    }
+  ],
+  "subjects": [
+    {"subject": {"scheme": "keyword", "value": "Social Sciences"}, "provenance": null},
+    {"subject": {"scheme": "keyword", "value": "Survey Methodology"}, "provenance": null},
+    {"subject": {"scheme": "fos", "value": "Sociology"}, "provenance": null},
+    {"subject": {"scheme": "sdg", "value": "Quality Education"}, "provenance": null}
+  ],
+  "bestAccessRight": {"code": "c_abf2", "label": "OPEN"},
+  "instances": [
+    {
+      "pids": [{"scheme": "doi", "value": "10.1234/dataset-001"}],
+      "accessRight": {"code": "c_abf2", "label": "OPEN"},
+      "urls": ["https://example.com/dataset-001"]
+    }
+  ],
+  "projects": [
+    {
+      "id": "40|arc________::project_001",
+      "code": "DP190100165",
+      "title": "EU Horizon 2020 Project on Data Sharing",
+      "funder": {
+        "name": "European Commission",
+        "shortName": "EC",
+        "jurisdiction": "EU"
+      }
+    }
+  ]
+}

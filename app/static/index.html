@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MESS — Metadata Enrichment Semantic Service</title>
+  <style>
+    :root {
+      --blue: #1a56a0;
+      --blue-light: #e8f0fb;
+      --green: #1a7a4a;
+      --green-light: #e6f4ec;
+      --gray: #6b7280;
+      --gray-light: #f3f4f6;
+      --border: #d1d5db;
+      --red: #b91c1c;
+      --red-light: #fee2e2;
+      --text: #111827;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; color: var(--text); background: #f9fafb; min-height: 100vh; }
+
+    header {
+      background: var(--blue);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.02em; }
+    header span { font-size: 0.85rem; opacity: 0.8; }
+
+    .search-bar {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .search-bar input {
+      flex: 1;
+      max-width: 480px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+    }
+    .search-bar input:focus { outline: 2px solid var(--blue); border-color: transparent; }
+    .search-bar button {
+      padding: 8px 20px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .search-bar button:hover { background: #154a88; }
+    .search-bar button:disabled { opacity: 0.5; cursor: default; }
+
+    .main { padding: 24px; max-width: 1100px; }
+
+    .spinner {
+      display: none;
+      text-align: center;
+      padding: 40px;
+      color: var(--gray);
+      font-size: 0.95rem;
+    }
+    .spinner.active { display: block; }
+
+    .error-banner {
+      display: none;
+      background: var(--red-light);
+      border: 1px solid #fca5a5;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      color: var(--red);
+      margin-bottom: 20px;
+    }
+    .error-banner.active { display: block; }
+
+    #results { display: none; }
+    #results.active { display: block; }
+
+    .cache-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .cache-badge.cached { background: var(--gray-light); color: var(--gray); }
+    .cache-badge.fresh { background: var(--green-light); color: var(--green); }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--blue); }
+    .card h3 { font-size: 0.98rem; margin-bottom: 8px; color: var(--text); }
+
+    .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-type { background: var(--blue-light); color: var(--blue); }
+    .badge-access { background: var(--green-light); color: var(--green); }
+    .badge-closed { background: #fef3c7; color: #92400e; }
+
+    .stat { font-size: 0.9rem; color: var(--gray); }
+    .stat strong { color: var(--text); }
+
+    .doi-link { font-size: 0.88rem; color: var(--blue); text-decoration: none; word-break: break-all; }
+    .doi-link:hover { text-decoration: underline; }
+
+    .label { font-size: 0.78rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; margin-top: 10px; }
+
+    .chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      background: var(--gray-light);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      color: var(--text);
+    }
+    .chip-topic { background: var(--blue-light); color: var(--blue); }
+
+    .creators-list { font-size: 0.88rem; color: var(--gray); }
+
+    .ext-links { display: flex; gap: 12px; flex-wrap: wrap; }
+    .ext-link { font-size: 0.82rem; color: var(--blue); text-decoration: none; }
+    .ext-link:hover { text-decoration: underline; }
+
+    .provenance-section {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+    }
+    .prov-sources { font-size: 0.78rem; color: var(--gray); margin-bottom: 6px; }
+    .prov-sources strong { color: var(--text); }
+    .prov-links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .prov-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.78rem;
+      color: var(--blue);
+      text-decoration: none;
+      border: 1px solid var(--blue-light);
+      background: var(--blue-light);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+    .prov-link:hover { background: #d0e4f7; }
+    .prov-found-via { font-size: 0.75rem; color: var(--gray); margin-top: 6px; }
+    .prov-found-via a { color: var(--blue); text-decoration: none; }
+    .prov-found-via a:hover { text-decoration: underline; }
+
+    .rel-section h2 { font-size: 1rem; font-weight: 700; color: var(--gray); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+
+    .related-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .related-card .title { font-size: 0.92rem; font-weight: 600; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>MESS</h1>
+  <span>Metadata Enrichment Semantic Service</span>
+  <nav style="margin-left:auto;display:flex;gap:12px">
+    <a href="browse.html" style="color:rgba(255,255,255,0.85);text-decoration:none;font-size:0.85rem;padding:4px 10px;border-radius:4px">Browse</a>
+    <a href="index.html" style="color:rgba(255,255,255,0.85);text-decoration:none;font-size:0.85rem;padding:4px 10px;border-radius:4px;background:rgba(255,255,255,0.2);color:#fff">Enrich</a>
+    <a href="sparql.html" style="color:rgba(255,255,255,0.85);text-decoration:none;font-size:0.85rem;padding:4px 10px;border-radius:4px">SPARQL</a>
+    <a href="graph.html" style="color:rgba(255,255,255,0.85);text-decoration:none;font-size:0.85rem;padding:4px 10px;border-radius:4px">Graph</a>
+  </nav>
+</header>
+
+<div class="search-bar">
+  <input id="pid-input" type="text" placeholder="e.g. 10.4232/1.14377" autocomplete="off" />
+  <button id="enrich-btn" onclick="doEnrich()">Enrich</button>
+</div>
+
+<div class="main">
+  <div class="spinner" id="spinner">Enriching&hellip;</div>
+  <div class="error-banner" id="error-banner"></div>
+  <div id="results"></div>
+</div>
+
+<script>
+  const pidInput = document.getElementById('pid-input');
+  const btn = document.getElementById('enrich-btn');
+  const spinner = document.getElementById('spinner');
+  const errorBanner = document.getElementById('error-banner');
+  const results = document.getElementById('results');
+
+  pidInput.addEventListener('keydown', e => { if (e.key === 'Enter') doEnrich(); });
+
+  // Pre-fill PID from ?pid= URL param (e.g. when linked from graph.html)
+  const urlPid = new URLSearchParams(location.search).get('pid');
+  if (urlPid) { pidInput.value = urlPid; doEnrich(); }
+
+  async function doEnrich() {
+    const pid = pidInput.value.trim();
+    if (!pid) return;
+
+    btn.disabled = true;
+    spinner.classList.add('active');
+    errorBanner.classList.remove('active');
+    results.classList.remove('active');
+    results.innerHTML = '';
+
+    try {
+      const resp = await fetch(`/enrich?pid=${encodeURIComponent(pid)}`);
+      const text = await resp.text();
+      if (!resp.ok) {
+        let msg = text;
+        try { msg = JSON.parse(text).detail || text; } catch {}
+        throw new Error(msg);
+      }
+      const { cached, data } = JSON.parse(text);
+      render(data['@graph'] || [], cached);
+    } catch (e) {
+      errorBanner.textContent = e.message || 'Unknown error';
+      errorBanner.classList.add('active');
+    } finally {
+      btn.disabled = false;
+      spinner.classList.remove('active');
+    }
+  }
+
+  // ── Relation predicate keys present in @graph source node ────────────────
+  const REL_LABELS = {
+    isRelatedTo:    'Is Related To',
+    cites:          'Cites',
+    isSupplementTo: 'Is Supplement To',
+    references:     'References',
+    isNewVersionOf: 'Is New Version Of',
+    isPartOf:       'Is Part Of',
+    hasPart:        'Has Part',
+    isDerivedFrom:  'Is Derived From',
+    isSourceOf:     'Is Source Of',
+  };
+
+  function render(graph, cached) {
+    if (!graph.length) {
+      results.innerHTML = '<p style="color:var(--gray)">No data returned.</p>';
+      results.classList.add('active');
+      return;
+    }
+
+    const src = graph[0];
+    // Build lookup by @id for related objects
+    const byId = {};
+    for (let i = 1; i < graph.length; i++) byId[graph[i]['@id']] = graph[i];
+
+    // Cache badge
+    const badge = `<span class="cache-badge ${cached ? 'cached' : 'fresh'}">${cached ? '↩ From cache' : '✓ Freshly enriched'}</span>`;
+
+    // ── Source card ──────────────────────────────────────────────────────────
+    let html = badge + '<div class="card">';
+    html += `<h2>${esc(src.title || src['@id'])}</h2>`;
+
+    // Publication date
+    if (src._mess && src._mess.publication_date) {
+      const yr = String(src._mess.publication_date).match(/\d{4}/);
+      html += `<div style="margin-top:4px;margin-bottom:2px;font-size:0.88rem;color:var(--gray)">${esc(yr ? yr[0] : src._mess.publication_date)}</div>`;
+    }
+
+    // Creators / contributors
+    const creators = src.contributors || src.creators || [];
+    if (creators.length) {
+      html += '<div class="label">Creators</div>';
+      html += `<div class="creators-list">${esc(creators.map(c => c.name || c).join('; '))}</div>`;
+    }
+
+    // Type + access badges + DOI link
+    html += '<div class="meta-row" style="margin-top:10px">';
+    if (src.type) html += `<span class="badge badge-type">${esc(src.type)}</span>`;
+    if (src.access) {
+      const t = src.access.type || '';
+      const isOpen = /open/i.test(t);
+      html += `<span class="badge ${isOpen ? 'badge-access' : 'badge-closed'}">${esc(t)}</span>`;
+    }
+    const doi = getPrimaryDoi(src.identifiers);
+    if (doi) html += `<a class="doi-link" href="https://doi.org/${esc(doi)}" target="_blank">doi:${esc(doi)}</a>`;
+    html += '</div>';
+
+    // Citation count + FWCI
+    if (src.citationCount != null || src.fwci != null) {
+      html += '<div class="meta-row">';
+      if (src.citationCount != null) html += `<span class="stat"><strong>${src.citationCount}</strong> citations</span>`;
+      if (src.fwci != null) html += `<span class="stat" style="margin-left:8px">FWCI <strong>${src.fwci}</strong></span>`;
+      html += '</div>';
+    }
+
+    // All PIDs
+    const allDois = getDois(src.identifiers);
+    if (allDois.length > 1) {
+      html += '<div class="label">All DOIs</div>';
+      html += '<div class="ext-links">';
+      allDois.forEach(d => {
+        html += `<a class="doi-link ext-link" href="https://doi.org/${esc(d)}" target="_blank">doi:${esc(d)}</a>`;
+      });
+      html += '</div>';
+    }
+
+    // Keywords
+    if ((src.keywords || []).length) {
+      html += '<div class="label">Keywords</div>';
+      html += '<div class="chip-list">';
+      src.keywords.forEach(k => { html += `<span class="chip">${esc(k)}</span>`; });
+      html += '</div>';
+    }
+
+    // Topics
+    if ((src.topics || []).length) {
+      html += '<div class="label">Topics</div>';
+      html += '<div class="chip-list">';
+      src.topics.forEach(t => {
+        const label = t.label || t.id || String(t);
+        const scheme = t.scheme ? ` (${t.scheme})` : '';
+        html += `<span class="chip chip-topic">${esc(label + scheme)}</span>`;
+      });
+      html += '</div>';
+    }
+
+    // External IDs (OpenAIRE / OpenAlex)
+    const extLinks = buildExtLinks(src);
+    if (extLinks) {
+      html += '<div class="label">External IDs</div>';
+      html += `<div class="ext-links">${extLinks}</div>`;
+    }
+
+    // Provenance section
+    html += buildProvenanceSection(src._mess);
+
+    html += '</div>'; // end source card
+
+    // ── Related objects grouped by predicate ─────────────────────────────────
+    let hasRelated = false;
+    for (const [pred, label] of Object.entries(REL_LABELS)) {
+      const refs = (src[pred] || []);
+      if (!refs.length) continue;
+
+      const relNodes = refs.map(r => byId[r['@id']]).filter(Boolean);
+      if (!relNodes.length) continue;
+
+      if (!hasRelated) { html += '<div class="rel-section">'; hasRelated = true; }
+      html += `<h2>${esc(label)}</h2><div class="related-grid">`;
+
+      relNodes.forEach(obj => {
+        html += '<div class="related-card">';
+        html += `<div class="title">${esc(obj.title || obj['@id'])}</div>`;
+        html += '<div class="meta-row">';
+        if (obj.type) html += `<span class="badge badge-type">${esc(obj.type)}</span>`;
+        if (obj.access) {
+          const t = obj.access.type || obj.access.url && 'open' || '';
+          if (t) {
+            const isOpen = /open/i.test(t);
+            html += `<span class="badge ${isOpen ? 'badge-access' : 'badge-closed'}">${esc(t)}</span>`;
+          }
+        }
+        const relDoi = getPrimaryDoi(obj.identifiers);
+        if (relDoi) html += `<a class="doi-link" href="https://doi.org/${esc(relDoi)}" target="_blank">doi:${esc(relDoi)}</a>`;
+        html += '</div>';
+
+        if (obj.citationCount != null) {
+          html += `<div class="stat"><strong>${obj.citationCount}</strong> citations</div>`;
+        }
+
+        const relCreators = obj.contributors || obj.creators || [];
+        if (relCreators.length) {
+          html += `<div style="margin-top:6px" class="creators-list">${esc(relCreators.slice(0, 4).map(c => c.name || c).join('; '))}${relCreators.length > 4 ? ' …' : ''}</div>`;
+        }
+
+        if ((obj.keywords || []).length) {
+          html += '<div style="margin-top:6px" class="chip-list">';
+          obj.keywords.slice(0, 5).forEach(k => { html += `<span class="chip">${esc(k)}</span>`; });
+          if (obj.keywords.length > 5) html += `<span class="chip">+${obj.keywords.length - 5}</span>`;
+          html += '</div>';
+        }
+
+        html += buildRelatedProvenance(obj._mess);
+        html += '</div>';
+      });
+
+      html += '</div>';
+    }
+
+    if (hasRelated) html += '</div>';
+
+    results.innerHTML = html;
+    results.classList.add('active');
+  }
+
+  function getPrimaryDoi(identifiers) {
+    const dois = getDois(identifiers);
+    return dois[0] || null;
+  }
+
+  function getDois(identifiers) {
+    if (!Array.isArray(identifiers)) return [];
+    return identifiers
+      .filter(i => (i.scheme || '').toLowerCase() === 'doi' && i.value)
+      .map(i => i.value);
+  }
+
+  function buildExtLinks(obj) {
+    const parts = [];
+    if (obj['@id'] && obj['@id'].startsWith('https://doi.org/')) {
+      // DOI link already shown above
+    }
+    // Look for openalex/openaire topics or access URL
+    if (obj.access && obj.access.url) {
+      parts.push(`<a class="ext-link" href="${esc(obj.access.url)}" target="_blank">Access URL</a>`);
+    }
+    return parts.join(' &nbsp;');
+  }
+
+  function buildProvenanceSection(mess) {
+    if (!mess) return '';
+    let html = '<div class="provenance-section">';
+
+    // Data sources row
+    if ((mess.data_sources || []).length) {
+      html += '<div class="prov-sources"><strong>Data from:</strong> ';
+      html += mess.data_sources.map(s => `<span class="badge badge-type">${esc(s)}</span>`).join(' ');
+      html += '</div>';
+    }
+
+    // Per-DOI citation breakdown (if multiple DOIs were queried)
+    const perDoi = mess.citation_count_per_doi;
+    if (perDoi && Object.keys(perDoi).length > 1) {
+      html += '<div class="prov-sources" style="margin-top:4px"><strong>Citations per DOI:</strong> ';
+      html += Object.entries(perDoi).map(([doi, n]) => `doi:${esc(doi)} = ${n}`).join(' · ');
+      html += '</div>';
+    }
+
+    // Source links row
+    const links = mess.source_links || {};
+    const LINK_LABELS = {
+      openalex_work:         'OpenAlex record',
+      openalex_cited_by:     'OpenAlex citations',
+      scholexplorer_as_source: 'Scholexplorer (as source)',
+      scholexplorer_as_target: 'Scholexplorer (citing)',
+      openaire_explore:      'OpenAIRE Explore',
+    };
+    const linkKeys = Object.keys(LINK_LABELS).filter(k => links[k]);
+    if (linkKeys.length) {
+      html += '<div class="prov-links" style="margin-top:6px">';
+      linkKeys.forEach(k => {
+        html += `<a class="prov-link" href="${esc(links[k])}" target="_blank">${LINK_LABELS[k]}</a>`;
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  function buildRelatedProvenance(mess) {
+    if (!mess) return '';
+    const parts = [];
+    const links = mess.source_links || {};
+
+    if (mess.found_via_doi) {
+      parts.push(`<span class="prov-found-via">Found via doi:${esc(mess.found_via_doi)}</span>`);
+    }
+    if (links.openalex_work) {
+      parts.push(`<a class="prov-link" href="${esc(links.openalex_work)}" target="_blank">OpenAlex</a>`);
+    }
+    if (links.openalex_cited_by) {
+      parts.push(`<a class="prov-link" href="${esc(links.openalex_cited_by)}" target="_blank">Citations</a>`);
+    }
+
+    if (!parts.length) return '';
+    return `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">${parts.join('')}</div>`;
+  }
+
+  function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

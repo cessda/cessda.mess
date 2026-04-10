@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MESS — Browse</title>
+  <style>
+    :root {
+      --blue: #1a56a0;
+      --blue-light: #e8f0fb;
+      --green: #1a7a4a;
+      --green-light: #e6f4ec;
+      --gray: #6b7280;
+      --gray-light: #f3f4f6;
+      --border: #d1d5db;
+      --text: #111827;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; color: var(--text); background: #f9fafb; min-height: 100vh; }
+
+    header {
+      background: var(--blue);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.02em; }
+    header span { font-size: 0.85rem; opacity: 0.8; }
+    nav { display: flex; gap: 12px; margin-left: auto; }
+    nav a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.85rem; padding: 4px 10px; border-radius: 4px; }
+    nav a:hover, nav a.active { background: rgba(255,255,255,0.2); color: #fff; }
+
+    .toolbar {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .toolbar-label { font-size: 0.82rem; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 4px; }
+    .sort-btn {
+      padding: 5px 14px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: #fff;
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: var(--gray);
+      font-weight: 500;
+    }
+    .sort-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .sort-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
+
+    .main { padding: 20px 24px; max-width: 960px; }
+
+    .spinner { display: none; text-align: center; padding: 40px; color: var(--gray); font-size: 0.95rem; }
+    .spinner.active { display: block; }
+
+    .error-banner {
+      display: none;
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      color: #b91c1c;
+      margin-bottom: 16px;
+    }
+    .error-banner.active { display: block; }
+
+    .summary { font-size: 0.85rem; color: var(--gray); margin-bottom: 14px; }
+
+    .obj-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 10px;
+    }
+    .obj-card:hover { border-color: #93c5fd; }
+
+    .obj-title a {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .obj-title a:hover { text-decoration: underline; }
+
+    .obj-meta {
+      margin-top: 5px;
+      font-size: 0.84rem;
+      color: var(--gray);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 14px;
+      align-items: center;
+    }
+
+    .obj-links {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .obj-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.78rem;
+      color: var(--blue);
+      text-decoration: none;
+      border: 1px solid var(--blue-light);
+      background: var(--blue-light);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+    .obj-link:hover { background: #d0e4f7; }
+
+    .obj-stats {
+      margin-top: 8px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .stat { font-size: 0.8rem; color: var(--gray); }
+    .stat strong { color: var(--text); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+      font-size: 0.88rem;
+      color: var(--gray);
+    }
+    .page-btn {
+      padding: 5px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+    .page-btn:disabled { opacity: 0.4; cursor: default; }
+
+    .empty { padding: 40px; text-align: center; color: var(--gray); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>MESS</h1>
+  <span>Metadata Enrichment Semantic Service</span>
+  <nav>
+    <a href="browse.html" class="active">Browse</a>
+    <a href="index.html">Enrich</a>
+    <a href="sparql.html">SPARQL</a>
+    <a href="graph.html">Graph</a>
+  </nav>
+</header>
+
+<div class="toolbar">
+  <span class="toolbar-label">Sort by</span>
+  <button class="sort-btn active" data-sort="enrichment_time">Enrichment time</button>
+  <button class="sort-btn" data-sort="openaire_relations">OpenAIRE relations</button>
+  <button class="sort-btn" data-sort="source_citations">Source citations</button>
+  <button class="sort-btn" data-sort="related_citations">Related citations</button>
+</div>
+
+<div class="main">
+  <div class="spinner" id="spinner">Loading&hellip;</div>
+  <div class="error-banner" id="error-banner"></div>
+  <div id="summary" class="summary"></div>
+  <div id="list"></div>
+  <div class="pagination" id="pagination" style="display:none">
+    <button class="page-btn" id="prev-btn" onclick="changePage(-1)">&#8592; Prev</button>
+    <span id="page-info"></span>
+    <button class="page-btn" id="next-btn" onclick="changePage(1)">Next &#8594;</button>
+  </div>
+</div>
+
+<script>
+  const PAGE_SIZE = 20;
+  let currentPage = 1;
+  let currentSort = 'enrichment_time';
+  let totalItems = 0;
+
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSort = btn.dataset.sort;
+      currentPage = 1;
+      load();
+    });
+  });
+
+  async function load() {
+    const spinner = document.getElementById('spinner');
+    const errorBanner = document.getElementById('error-banner');
+    const list = document.getElementById('list');
+    const summary = document.getElementById('summary');
+    const pagination = document.getElementById('pagination');
+
+    spinner.classList.add('active');
+    errorBanner.classList.remove('active');
+    list.innerHTML = '';
+    pagination.style.display = 'none';
+    summary.textContent = '';
+
+    try {
+      const url = `/api/objects?page=${currentPage}&page_size=${PAGE_SIZE}&sort=${currentSort}`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      totalItems = data.total;
+      render(data);
+    } catch (e) {
+      errorBanner.textContent = 'Failed to load objects: ' + (e.message || 'Unknown error');
+      errorBanner.classList.add('active');
+    } finally {
+      spinner.classList.remove('active');
+    }
+  }
+
+  function render(data) {
+    const list = document.getElementById('list');
+    const summary = document.getElementById('summary');
+    const pagination = document.getElementById('pagination');
+
+    const start = (currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(currentPage * PAGE_SIZE, data.total);
+    summary.textContent = data.total
+      ? `Showing ${start}–${end} of ${data.total} source objects`
+      : '';
+
+    if (!data.items.length) {
+      list.innerHTML = '<div class="empty">No objects found. Enrich a PID to get started.</div>';
+      return;
+    }
+
+    let html = '';
+    for (const obj of data.items) {
+      const titleText = obj.title || primaryDoi(obj.pids) || `Object #${obj.id}`;
+      const doi = primaryDoi(obj.pids);
+      const detailUrl = doi
+        ? `index.html?pid=${encodeURIComponent(doi)}`
+        : `index.html?pid=${encodeURIComponent(firstPidValue(obj.pids))}`;
+
+      html += '<div class="obj-card">';
+      html += `<div class="obj-title"><a href="${esc(detailUrl)}">${esc(titleText)}</a></div>`;
+
+      // Authors + year row
+      const authors = formatAuthors(obj.creators);
+      const year = formatYear(obj.publication_date);
+      if (authors || year) {
+        html += '<div class="obj-meta">';
+        if (authors) html += `<span>${esc(authors)}</span>`;
+        if (year) html += `<span style="color:var(--text);font-weight:500">${esc(year)}</span>`;
+        html += '</div>';
+      }
+
+      // External links row
+      const cessda = cessdaUrl(obj.source_local_id);
+      const openaire = openaireUrl(obj.external_ids);
+      const openalex = openalexUrl(obj.external_ids);
+      if (cessda || openaire || openalex) {
+        html += '<div class="obj-links">';
+        if (cessda)   html += `<a class="obj-link" href="${esc(cessda)}" target="_blank">CESSDA</a>`;
+        if (openaire) html += `<a class="obj-link" href="${esc(openaire)}" target="_blank">OpenAIRE</a>`;
+        if (openalex) html += `<a class="obj-link" href="${esc(openalex)}" target="_blank">OpenAlex</a>`;
+        html += '</div>';
+      }
+
+      // Stats row
+      html += '<div class="obj-stats">';
+      if (obj.citation_count != null) html += `<span class="stat"><strong>${obj.citation_count}</strong> source citations</span>`;
+      if (obj.openaire_relation_count) html += `<span class="stat"><strong>${obj.openaire_relation_count}</strong> OpenAIRE relations</span>`;
+      if (obj.related_citation_sum) html += `<span class="stat"><strong>${obj.related_citation_sum}</strong> related citations total</span>`;
+      html += '</div>';
+
+      html += '</div>';
+    }
+    list.innerHTML = html;
+
+    // Pagination
+    const totalPages = Math.ceil(data.total / PAGE_SIZE);
+    if (totalPages > 1) {
+      document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+      document.getElementById('prev-btn').disabled = currentPage <= 1;
+      document.getElementById('next-btn').disabled = currentPage >= totalPages;
+      pagination.style.display = 'flex';
+    }
+  }
+
+  function changePage(delta) {
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+    const next = currentPage + delta;
+    if (next < 1 || next > totalPages) return;
+    currentPage = next;
+    load();
+  }
+
+  function primaryDoi(pids) {
+    if (!Array.isArray(pids)) return null;
+    const e = pids.find(p => (p.type || '').toLowerCase() === 'doi');
+    return e ? e.value : null;
+  }
+
+  function firstPidValue(pids) {
+    return Array.isArray(pids) && pids.length ? pids[0].value : '';
+  }
+
+  function formatAuthors(creators) {
+    if (!Array.isArray(creators) || !creators.length) return '';
+    const names = creators.slice(0, 3).map(c => c.name || c).filter(Boolean);
+    const suffix = creators.length > 3 ? ` +${creators.length - 3}` : '';
+    return names.join('; ') + suffix;
+  }
+
+  function formatYear(dateStr) {
+    if (!dateStr) return '';
+    // Extract 4-digit year from ISO date strings like "2021-03-15" or plain "2021"
+    const m = String(dateStr).match(/\d{4}/);
+    return m ? m[0] : dateStr;
+  }
+
+  function cessdaUrl(localId) {
+    return localId ? `https://datacatalogue.cessda.eu/detail/${localId}` : null;
+  }
+
+  function openaireUrl(externalIds) {
+    if (!Array.isArray(externalIds)) return null;
+    const e = externalIds.find(x => x.source === 'openaire');
+    return e ? `https://explore.openaire.eu/search/result?id=${encodeURIComponent(e.id)}` : null;
+  }
+
+  function openalexUrl(externalIds) {
+    if (!Array.isArray(externalIds)) return null;
+    const e = externalIds.find(x => x.source === 'openalex');
+    return e ? e.id : null;  // openalex id is already a full URL
+  }
+
+  function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Initial load
+  load();
+</script>
+</body>
+</html>
